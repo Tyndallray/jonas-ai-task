@@ -1,17 +1,58 @@
 # backend
 
-A Serverless Framework v4 REST API in TypeScript, backed by DynamoDB. It is based on the
-[aws-node-typescript-rest-api-with-dynamodb](https://github.com/serverless/examples/tree/v4/aws-node-typescript-rest-api-with-dynamodb) example.
+Marketplace REST API: Serverless Framework v4, TypeScript, DynamoDB, S3, and two Cognito user pools
+(users with self-signup, admins without). Serverless v4 bundles the TypeScript handlers itself with its
+built-in esbuild, so there is no build step and no plugin to install.
 
-Serverless v4 bundles the TypeScript handlers itself with its built-in esbuild, so there is no build step and no plugin to install.
+## Setup and deploy
 
-## Setup
+AWS commands use the `afferenza` profile (the npm scripts pass `--aws-profile afferenza`).
 
 ```bash
 cd backend
 npm install
 npm run typecheck   # tsc --noEmit
-npm run deploy      # serverless deploy (needs AWS credentials and a Serverless login)
+npm test            # vitest: ad lifecycle happy path
+npm run deploy      # serverless deploy (needs a Serverless login)
+npm run info        # prints the endpoint and stack outputs again
+```
+
+The stack outputs feed `frontend/.env.local`:
+
+| Output | Frontend env var |
+| --- | --- |
+| `ServiceEndpoint` | `VITE_API_BASE_URL` |
+| `UserPoolAuthority` | `VITE_COGNITO_AUTHORITY` |
+| `UserPoolClientId` | `VITE_COGNITO_CLIENT_ID` |
+| `UserPoolDomainUrl` | `VITE_COGNITO_DOMAIN` |
+| `AdminPoolAuthority` | `VITE_ADMIN_COGNITO_AUTHORITY` |
+| `AdminPoolClientId` | `VITE_ADMIN_COGNITO_CLIENT_ID` |
+| `AdminPoolDomainUrl` | `VITE_ADMIN_COGNITO_DOMAIN` |
+
+The Cognito callback/sign-out URLs default to `http://localhost:5173`. For another origin, deploy with
+`npm run deploy -- --param="frontendUrl=https://your.site"`.
+
+### Create an admin
+
+Admins cannot sign up. Create one with the AdminPoolId output:
+
+```bash
+aws cognito-idp admin-create-user --profile afferenza --region us-east-1 \
+  --user-pool-id <AdminPoolId> --username admin@example.com \
+  --user-attributes Name=email,Value=admin@example.com Name=email_verified,Value=true
+```
+
+Cognito emails a temporary password; the admin sets a new one on first sign-in at `/admin`.
+
+### Get a token for curl
+
+Both app clients allow `ADMIN_USER_PASSWORD_AUTH`, so an operator with IAM credentials can mint an ID token:
+
+```bash
+aws cognito-idp admin-initiate-auth --profile afferenza --region us-east-1 \
+  --user-pool-id <PoolId> --client-id <ClientId> --auth-flow ADMIN_USER_PASSWORD_AUTH \
+  --auth-parameters USERNAME=<email>,PASSWORD=<password> \
+  --query AuthenticationResult.IdToken --output text
 ```
 
 ## Deployment (GitHub Actions)
@@ -34,17 +75,31 @@ Repository secrets used by the deploy job:
 ## Layout
 
 ```
-serverless.yml        # service, IAM, functions, DynamoDB table
-src/lib/dynamodb.ts   # shared DynamoDB document client
-src/todos/*.ts        # one Lambda handler per endpoint
+serverless.yml        # functions, authorizers, Ads table, images bucket, Cognito pools
+src/lib/http.ts       # handler wrapper, JSON responses, authorizer claims
+src/lib/ads.ts        # Ad model, validation, response shapes
+src/lib/adsRepo.ts    # DynamoDB access (conditional status transitions, pagination)
+src/lib/images.ts     # S3 presigned POST and image deletion
+src/ads/*.ts          # public feed/detail, create, image upload
+src/me/*.ts           # owner's ads: list, edit + resubmit, delete
+src/admin/*.ts        # review queue, moderation decision
+test/                 # vitest
 ```
 
 ## Endpoints
 
-| Method | Path          | Body                                 |
-| ------ | ------------- | ------------------------------------ |
-| POST   | `/todos`      | `{ "text": "Learn Serverless" }`     |
-| GET    | `/todos`      |                                      |
-| GET    | `/todos/{id}` |                                      |
-| PUT    | `/todos/{id}` | `{ "text": "...", "checked": true }` |
-| DELETE | `/todos/{id}` |                                      |
+Authenticated endpoints take `Authorization: Bearer <ID token>` from the matching pool.
+
+| Method | Path | Auth | Body |
+| --- | --- | --- | --- |
+| GET | `/ads?cursor=` | public | Approved ads, newest first, 20 per page, `{ items, nextCursor }` |
+| GET | `/ads/{id}` | public | 404 unless approved |
+| POST | `/ads` | user | `{ "title", "description", "price": 12.5, "imageKey"? }` |
+| POST | `/ads/image-upload` | user | `{ "contentType": "image/png" }` → `{ url, fields, key }` presigned POST |
+| GET | `/me/ads` | user | All own ads with `status` and `adminNote` |
+| PUT | `/me/ads/{id}` | user | Same as create; only for `NEEDS_INFO` ads, sends them back to `PENDING` |
+| DELETE | `/me/ads/{id}` | user | |
+| GET | `/admin/ads?cursor=` | admin | Pending ads, oldest first |
+| POST | `/admin/ads/{id}/decision` | admin | `{ "action": "approve" \| "reject" \| "request_info", "note"? }` (note required unless approving) |
+
+Ad statuses: `PENDING` → `APPROVED` \| `REJECTED` \| `NEEDS_INFO`; `NEEDS_INFO` → `PENDING` when the owner resubmits.

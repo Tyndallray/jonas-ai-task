@@ -29,6 +29,7 @@ jobs:
           cache-dependency-path: backend/package-lock.json
       - run: npm ci
       - run: npm run typecheck
+      - run: npm test
 
   # The branch name is the stage: dev -> dev, prod -> prod.
   # The prod environment is where the manual approval gate lives.

@@ -1,11 +1,11 @@
 import { useAuth } from 'react-oidc-context'
-import { cognitoLogoutUrl } from './config'
+import { cognitoLogoutUrl, type CognitoConfig } from './config'
 
-export function useLogout() {
+export function useLogout(config?: CognitoConfig) {
   const auth = useAuth()
 
   return async () => {
     await auth.removeUser()
-    window.location.href = cognitoLogoutUrl()
+    window.location.href = cognitoLogoutUrl(config)
   }
 }

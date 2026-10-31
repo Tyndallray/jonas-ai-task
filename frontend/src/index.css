@@ -114,3 +114,184 @@ pre {
   margin: 0;
   word-break: break-all;
 }
+
+input,
+textarea {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  width: 100%;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.form {
+  display: grid;
+  gap: 16px;
+  max-width: 560px;
+}
+
+.form label {
+  display: grid;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.current-image {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.current-image img {
+  width: 96px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.ad-grid {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.ad-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  padding-bottom: 12px;
+}
+
+.ad-card a:first-child {
+  text-decoration: none;
+}
+
+.ad-card img,
+.ad-card .no-image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+  background: var(--code-bg);
+}
+
+.ad-card h2,
+.ad-card p {
+  margin: 8px 12px 0;
+}
+
+.ad-card h2 {
+  font-size: 18px;
+}
+
+.price {
+  font-weight: 700;
+  color: var(--text-h);
+}
+
+.meta {
+  font-size: 14px;
+  word-break: break-all;
+}
+
+.description {
+  white-space: pre-wrap;
+}
+
+.ad-view img {
+  max-width: 100%;
+  border-radius: 8px;
+}
+
+.ad-list {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.ad-row {
+  display: grid;
+  grid-template-columns: 120px 1fr auto;
+  gap: 16px;
+  align-items: start;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.ad-row.review {
+  grid-template-columns: 160px 1fr;
+}
+
+.ad-row img,
+.ad-row .no-image {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--code-bg);
+}
+
+.ad-row h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.ad-row p {
+  margin: 4px 0;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.status {
+  display: inline-block;
+  font-size: 13px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+}
+
+.status-approved {
+  color: #2e7d32;
+}
+
+.status-rejected {
+  color: var(--error);
+}
+
+.status-needs_info {
+  color: #b26a00;
+}
+
+.note {
+  background: var(--code-bg);
+  padding: 8px;
+  border-radius: 6px;
+}
+
+.admin-header {
+  border-bottom: 2px solid var(--accent);
+}
+
+@media (max-width: 600px) {
+  .ad-row,
+  .ad-row.review {
+    grid-template-columns: 1fr;
+  }
+}

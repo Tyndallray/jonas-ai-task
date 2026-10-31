@@ -16,9 +16,14 @@ export function fakeAuth(overrides: Partial<AuthContextProps> = {}): AuthContext
   } as unknown as AuthContextProps
 }
 
-export function fakeUser(profile: Record<string, unknown> = {}, accessToken = jwt({})) {
+export function fakeUser(
+  profile: Record<string, unknown> = {},
+  accessToken = jwt({}),
+  idToken = jwt({ email: 'jane@example.com' }),
+) {
   return {
     access_token: accessToken,
+    id_token: idToken,
     expires_at: 1_900_000_000,
     profile: { sub: 'user-123', email: 'jane@example.com', ...profile },
   } as unknown as NonNullable<AuthContextProps['user']>
