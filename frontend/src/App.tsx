@@ -1,5 +1,6 @@
 import { Route, Routes } from 'react-router-dom'
 import { useAuth } from 'react-oidc-context'
+import { LoadingState } from './components/states'
 import { AdminApp } from './admin/AdminApp'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { Layout } from './components/Layout'
@@ -15,7 +16,7 @@ function App() {
   const auth = useAuth()
 
   // Covers the redirect back from Cognito while the code is exchanged for tokens
-  if (auth.isLoading) return <p className="centered">Loading…</p>
+  if (auth.isLoading) return <LoadingState fullPage />
 
   return (
     <Routes>

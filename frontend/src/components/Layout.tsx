@@ -1,39 +1,32 @@
-import { Link, Outlet } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 import { useAuth } from 'react-oidc-context'
-import { useLogout } from '../auth/useLogout'
+import { useLogout } from '@/auth/useLogout'
+import { AppHeader, type NavItem } from './AppHeader'
 
 export function Layout() {
   const auth = useAuth()
   const logout = useLogout()
 
+  const links: NavItem[] = [{ to: '/', label: 'Ads' }]
+  if (auth.isAuthenticated) {
+    links.push(
+      { to: '/ads/new', label: 'Post an ad' },
+      { to: '/my-ads', label: 'My ads' },
+      { to: '/profile', label: 'Profile' },
+    )
+  }
+
   return (
     <>
-      <header className="header">
-        <nav>
-          <Link to="/">Ads</Link>
-          {auth.isAuthenticated && (
-            <>
-              <Link to="/ads/new">Post an ad</Link>
-              <Link to="/my-ads">My ads</Link>
-              <Link to="/profile">Profile</Link>
-            </>
-          )}
-        </nav>
-        {auth.isAuthenticated ? (
-          <div className="user">
-            <span>{auth.user?.profile.email}</span>
-            <button type="button" onClick={logout}>
-              Sign out
-            </button>
-          </div>
-        ) : (
-          // Cognito's managed login page links to signup (self-signup is enabled on the user pool)
-          <button type="button" onClick={() => auth.signinRedirect()}>
-            Sign in / Sign up
-          </button>
-        )}
-      </header>
-      <main className="main">
+      <AppHeader
+        homeTo="/"
+        links={links}
+        email={auth.isAuthenticated ? auth.user?.profile.email : undefined}
+        // Cognito's managed login page links to signup (self-signup is enabled on the user pool)
+        onSignIn={() => auth.signinRedirect()}
+        onSignOut={logout}
+      />
+      <main className="mx-auto max-w-5xl px-4 py-8">
         <Outlet />
       </main>
     </>

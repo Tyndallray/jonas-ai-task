@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { AdForm } from '../components/AdForm'
-import type { AdDetail, AdInput } from '../lib/ads'
-import { useApi } from '../lib/useApi'
+import { AdForm } from '@/components/AdForm'
+import { PageHeader } from '@/components/PageHeader'
+import { EmptyState, ErrorAlert, LoadingState, NoteCallout } from '@/components/states'
+import { Button } from '@/components/ui/button'
+import type { AdDetail, AdInput } from '@/lib/ads'
+import { useApi } from '@/lib/useApi'
 
 // Edit and resubmit an ad an admin asked more info about
 export function EditAd() {
@@ -25,21 +28,29 @@ export function EditAd() {
     navigate('/my-ads')
   }
 
-  if (error) return <p className="error">{error}</p>
-  if (ad === undefined) return <p>Loading…</p>
+  if (error) return <ErrorAlert>{error}</ErrorAlert>
+  if (ad === undefined) return <LoadingState />
   if (ad === null || ad.status !== 'NEEDS_INFO') {
     return (
-      <section>
-        <p>Only ads that need more info can be edited.</p>
-        <Link to="/my-ads">Back to my ads</Link>
-      </section>
+      <EmptyState
+        title="Only ads that need more info can be edited."
+        action={
+          <Button variant="outline" asChild>
+            <Link to="/my-ads">Back to my ads</Link>
+          </Button>
+        }
+      />
     )
   }
 
   return (
-    <section>
-      <h1>Edit and resubmit</h1>
-      {ad.adminNote && <p className="note">Admin note: {ad.adminNote}</p>}
+    <section className="space-y-6">
+      <PageHeader title="Edit and resubmit" />
+      {ad.adminNote && (
+        <div className="max-w-2xl">
+          <NoteCallout label="Admin note">{ad.adminNote}</NoteCallout>
+        </div>
+      )}
       <AdForm
         initial={{
           title: ad.title,

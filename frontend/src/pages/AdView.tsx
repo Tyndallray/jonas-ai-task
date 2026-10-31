@@ -1,7 +1,24 @@
+import { ArrowLeft } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { formatDate, formatPrice, type PublicAd } from '../lib/ads'
-import { useApi } from '../lib/useApi'
+import { ListingImage } from '@/components/ListingImage'
+import { ErrorAlert, LoadingState } from '@/components/states'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import { formatDate, formatPrice, type PublicAd } from '@/lib/ads'
+import { useApi } from '@/lib/useApi'
+
+function BackToAds({ label }: { label: string }) {
+  return (
+    <Button variant="ghost" size="sm" asChild className="-ml-3 mb-4">
+      <Link to="/">
+        <ArrowLeft />
+        {label}
+      </Link>
+    </Button>
+  )
+}
 
 export function AdView() {
   const { id } = useParams()
@@ -17,23 +34,38 @@ export function AdView() {
   if (error) {
     return (
       <section>
-        <p className="error">{error}</p>
-        <Link to="/">Back to ads</Link>
+        <BackToAds label="Back to ads" />
+        <ErrorAlert>{error}</ErrorAlert>
       </section>
     )
   }
-  if (!ad) return <p>Loading…</p>
+  if (!ad) return <LoadingState />
 
   return (
-    <section className="ad-view">
-      <Link to="/">← All ads</Link>
-      <h1>{ad.title}</h1>
-      {ad.imageUrl && <img src={ad.imageUrl} alt="" />}
-      <p className="price">{formatPrice(ad.price)}</p>
-      <p className="description">{ad.description}</p>
-      <p className="meta">
-        Posted by <a href={`mailto:${ad.ownerEmail}`}>{ad.ownerEmail}</a> on {formatDate(ad.approvedAt)}
-      </p>
+    <section>
+      <BackToAds label="All ads" />
+      <div className="grid gap-8 md:grid-cols-[3fr_2fr]">
+        <ListingImage src={ad.imageUrl} className="rounded-xl border" />
+        <Card>
+          <CardContent className="space-y-4">
+            <h1 className="text-2xl font-semibold tracking-tight break-words">{ad.title}</h1>
+            <p className="text-3xl font-semibold text-primary">{formatPrice(ad.price)}</p>
+            <Separator />
+            <p className="whitespace-pre-wrap break-words">{ad.description}</p>
+            <Separator />
+            <p className="text-sm break-words text-muted-foreground">
+              Posted by{' '}
+              <a href={`mailto:${ad.ownerEmail}`} className="font-medium text-primary hover:underline">
+                {ad.ownerEmail}
+              </a>{' '}
+              on {formatDate(ad.approvedAt)}
+            </p>
+            <Button asChild className="w-full">
+              <a href={`mailto:${ad.ownerEmail}?subject=${encodeURIComponent(ad.title)}`}>Contact seller</a>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </section>
   )
 }

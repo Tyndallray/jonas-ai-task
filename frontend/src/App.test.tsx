@@ -1,12 +1,18 @@
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactNode } from 'react'
 import { useAuth } from 'react-oidc-context'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import App from './App'
 import { fakeAuth, fakeUser, jwt } from './test/auth'
 
-vi.mock('react-oidc-context', () => ({ useAuth: vi.fn(), hasAuthParams: () => false }))
+vi.mock('react-oidc-context', () => ({
+  useAuth: vi.fn(),
+  hasAuthParams: () => false,
+  // The admin area nests its own provider; the mocked useAuth stands in for both
+  AuthProvider: ({ children }: { children: ReactNode }) => children,
+}))
 
 function renderAt(path: string, auth = fakeAuth()) {
   vi.mocked(useAuth).mockReturnValue(auth)
@@ -119,6 +125,36 @@ describe('App', () => {
 
     expect(screen.queryByRole('heading', { name: 'Profile' })).not.toBeInTheDocument()
     expect(auth.signinRedirect).toHaveBeenCalledWith({ state: { returnTo: '/profile' } })
+  })
+
+  it('shows the admin review queue with the shared ad row and an Admin marker', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({
+        items: [
+          {
+            id: 'ad-2',
+            title: 'Old sofa',
+            description: 'Comfy',
+            price: 40,
+            imageKey: null,
+            imageUrl: null,
+            ownerEmail: 'seller@example.com',
+            status: 'PENDING',
+            adminNote: null,
+            createdAt: 1_800_000_000_000,
+            updatedAt: 1_800_000_000_000,
+            statusAt: 1_800_000_000_000,
+          },
+        ],
+        nextCursor: null,
+      }),
+    )
+    renderAt('/admin', signedIn())
+
+    expect(screen.getByText('Admin')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'Old sofa' })).toBeInTheDocument()
+    expect(screen.getByText('Pending review')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Approve' })).toBeInTheDocument()
   })
 
   it('renders a not found page for unknown routes', () => {

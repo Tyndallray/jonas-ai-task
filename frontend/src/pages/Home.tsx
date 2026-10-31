@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { formatDate, formatPrice, type Page, type PublicAd } from '../lib/ads'
-import { useApi } from '../lib/useApi'
+import { AdCard } from '@/components/AdCard'
+import { PageHeader } from '@/components/PageHeader'
+import { EmptyState, ErrorAlert, LoadingState } from '@/components/states'
+import { Button } from '@/components/ui/button'
+import type { Page, PublicAd } from '@/lib/ads'
+import { useApi } from '@/lib/useApi'
 
 // Public feed: approved ads, newest first, with "load more"
 export function Home() {
@@ -36,28 +39,25 @@ export function Home() {
 
   return (
     <section>
-      <h1>Latest ads</h1>
-      {error && <p className="error">{error}</p>}
-      {!loading && !error && ads.length === 0 && <p>No ads yet.</p>}
-      <ul className="ad-grid">
+      <PageHeader title="Latest ads" description="Fresh listings from the community, newest first." />
+      {error && <ErrorAlert>{error}</ErrorAlert>}
+      {!loading && !error && ads.length === 0 && (
+        <EmptyState title="No ads yet." description="Approved ads will show up here." />
+      )}
+      <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {ads.map((ad) => (
-          <li key={ad.id} className="ad-card">
-            <Link to={`/ads/${ad.id}`}>
-              {ad.imageUrl ? <img src={ad.imageUrl} alt="" /> : <div className="no-image" />}
-              <h2>{ad.title}</h2>
-            </Link>
-            <p className="price">{formatPrice(ad.price)}</p>
-            <p className="meta">
-              <a href={`mailto:${ad.ownerEmail}`}>{ad.ownerEmail}</a> · {formatDate(ad.approvedAt)}
-            </p>
+          <li key={ad.id}>
+            <AdCard ad={ad} />
           </li>
         ))}
       </ul>
-      {loading && <p>Loading…</p>}
+      {loading && <LoadingState />}
       {cursor && !loading && (
-        <button type="button" onClick={() => load(cursor)}>
-          Load more
-        </button>
+        <div className="mt-8 flex justify-center">
+          <Button variant="outline" onClick={() => load(cursor)}>
+            Load more
+          </Button>
+        </div>
       )}
     </section>
   )
