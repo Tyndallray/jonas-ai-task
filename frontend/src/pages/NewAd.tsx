@@ -16,7 +16,7 @@ export function NewAd() {
     <section>
       <h1>Post an ad</h1>
       <p>Your ad will be visible to everyone once an admin approves it.</p>
-      <AdForm submitLabel="Submit for review" onSubmit={submit} />
+      <AdForm submitLabel="Submit for review" onSubmit={submit} aiFill />
     </section>
   )
 }
