@@ -29,7 +29,12 @@ export function useApi() {
         const body = await res.json().catch(() => undefined)
         throw new Error(body?.message ?? `${res.status} ${res.statusText}`)
       }
-      return res.status === 204 ? (undefined as T) : res.json()
+      if (res.status === 204) return undefined as T
+      // Without VITE_API_BASE_URL, requests hit the Vite dev server, which answers with index.html
+      if (!res.headers.get('Content-Type')?.includes('application/json')) {
+        throw new Error(`API returned non-JSON from ${res.url}; check VITE_API_BASE_URL`)
+      }
+      return res.json()
     },
     [auth, token],
   )
