@@ -7,7 +7,7 @@
 
 ## 2. Backend: ads (user + public)
 
-- [ ] 2.1 Add shared helpers: claims extraction (`sub`, `email`), ad validation, price ↔ `priceCents` conversion, cursor encode/decode, and JSON responses. Verify: typecheck passes.
+- [x] 2.1 Add shared helpers: claims extraction (`sub`, `email`), ad validation, price ↔ `priceCents` conversion, cursor encode/decode, and JSON responses. Verify: typecheck passes.
 - [ ] 2.2 Implement:
   - `POST /ads/image-upload` (presigned POST)
   - `POST /ads`
@@ -21,7 +21,7 @@
 ## 3. Backend: moderation
 
 - [ ] 3.1 Implement `GET /admin/ads` (PENDING, oldest first, paginated) and `POST /admin/ads/{id}/decision`. The decision endpoint takes approve, reject or request_info. A note is required for reject and request_info. Each decision is conditional on `PENDING` and returns 409 otherwise. Verify with curl using an admin ID token. Also verify that a user token gets 401 or 403.
-- [ ] 3.2 Add one happy-path test for the full lifecycle: create → request_info → edit/resubmit → approve → appears in public feed. Verify: the test passes locally.
+- [x] 3.2 Add one happy-path test for the full lifecycle: create → request_info → edit/resubmit → approve → appears in public feed. Verify: the test passes locally.
 
 ## 4. Frontend
 

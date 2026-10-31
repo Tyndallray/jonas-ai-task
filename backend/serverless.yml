@@ -2,78 +2,273 @@ service: jonas-ai-task-backend
 
 frameworkVersion: '4'
 
+params:
+  default:
+    # SPA origin, used for Cognito callback/sign-out URLs
+    frontendUrl: http://localhost:5173
+
 provider:
   name: aws
   runtime: nodejs24.x
   architecture: arm64
   region: eu-west-2
   environment:
-    DYNAMODB_TABLE: ${self:service}-${sls:stage}
+    ADS_TABLE: ${self:service}-ads-${sls:stage}
+    IMAGES_BUCKET: !Ref ImagesBucket
+    IMAGES_BASE_URL: !Sub https://${ImagesBucket}.s3.${AWS::Region}.amazonaws.com
   iam:
     role:
       statements:
         - Effect: Allow
           Action:
             - dynamodb:Query
-            - dynamodb:Scan
             - dynamodb:GetItem
             - dynamodb:PutItem
             - dynamodb:UpdateItem
             - dynamodb:DeleteItem
-          Resource: "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+          Resource:
+            - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.ADS_TABLE}"
+            - "arn:aws:dynamodb:${aws:region}:*:table/${self:provider.environment.ADS_TABLE}/index/*"
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:DeleteObject
+          Resource: !Sub ${ImagesBucket.Arn}/ads/*
+
+# Each authorizer trusts only its own pool, so tokens from the other pool are rejected at the gateway.
+# Without scopes, Cognito authorizers validate ID tokens (which carry the email claim).
+custom:
+  userAuthorizer: &userAuthorizer
+    name: userAuthorizer
+    type: COGNITO_USER_POOLS
+    arn: !GetAtt UserPool.Arn
+  adminAuthorizer: &adminAuthorizer
+    name: adminAuthorizer
+    type: COGNITO_USER_POOLS
+    arn: !GetAtt AdminPool.Arn
 
 functions:
-  create:
-    handler: src/todos/create.create
+  listAds:
+    handler: src/ads/list.list
     events:
       - http:
-          path: todos
+          path: ads
+          method: get
+          cors: true
+
+  getAd:
+    handler: src/ads/get.get
+    events:
+      - http:
+          path: ads/{id}
+          method: get
+          cors: true
+
+  createAd:
+    handler: src/ads/create.create
+    events:
+      - http:
+          path: ads
           method: post
           cors: true
+          authorizer: *userAuthorizer
 
-  list:
-    handler: src/todos/list.list
+  imageUpload:
+    handler: src/ads/imageUpload.imageUpload
     events:
       - http:
-          path: todos
+          path: ads/image-upload
+          method: post
+          cors: true
+          authorizer: *userAuthorizer
+
+  listMyAds:
+    handler: src/me/list.list
+    events:
+      - http:
+          path: me/ads
           method: get
           cors: true
+          authorizer: *userAuthorizer
 
-  get:
-    handler: src/todos/get.get
+  updateMyAd:
+    handler: src/me/update.update
     events:
       - http:
-          path: todos/{id}
-          method: get
-          cors: true
-
-  update:
-    handler: src/todos/update.update
-    events:
-      - http:
-          path: todos/{id}
+          path: me/ads/{id}
           method: put
           cors: true
+          authorizer: *userAuthorizer
 
-  delete:
-    handler: src/todos/delete.remove
+  deleteMyAd:
+    handler: src/me/delete.remove
     events:
       - http:
-          path: todos/{id}
+          path: me/ads/{id}
           method: delete
           cors: true
+          authorizer: *userAuthorizer
+
+  adminQueue:
+    handler: src/admin/queue.queue
+    events:
+      - http:
+          path: admin/ads
+          method: get
+          cors: true
+          authorizer: *adminAuthorizer
+
+  adminDecide:
+    handler: src/admin/decide.decide
+    events:
+      - http:
+          path: admin/ads/{id}/decision
+          method: post
+          cors: true
+          authorizer: *adminAuthorizer
 
 resources:
   Resources:
-    TodosDynamoDbTable:
-      Type: 'AWS::DynamoDB::Table'
+    AdsTable:
+      Type: AWS::DynamoDB::Table
       DeletionPolicy: Retain
       Properties:
-        AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
-        KeySchema:
-          - AttributeName: id
-            KeyType: HASH
+        TableName: ${self:provider.environment.ADS_TABLE}
         BillingMode: PAY_PER_REQUEST
-        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        AttributeDefinitions:
+          - { AttributeName: id, AttributeType: S }
+          - { AttributeName: status, AttributeType: S }
+          - { AttributeName: statusAt, AttributeType: N }
+          - { AttributeName: ownerId, AttributeType: S }
+          - { AttributeName: createdAt, AttributeType: N }
+        KeySchema:
+          - { AttributeName: id, KeyType: HASH }
+        GlobalSecondaryIndexes:
+          # Public feed (APPROVED, newest first) and admin queue (PENDING, oldest first)
+          - IndexName: byStatus
+            KeySchema:
+              - { AttributeName: status, KeyType: HASH }
+              - { AttributeName: statusAt, KeyType: RANGE }
+            Projection: { ProjectionType: ALL }
+          # "My ads"
+          - IndexName: byOwner
+            KeySchema:
+              - { AttributeName: ownerId, KeyType: HASH }
+              - { AttributeName: createdAt, KeyType: RANGE }
+            Projection: { ProjectionType: ALL }
+
+    # Authorizer rejections (401/403) need CORS headers too, or the browser hides the status
+    GatewayResponseDefault4XX:
+      Type: AWS::ApiGateway::GatewayResponse
+      Properties:
+        RestApiId: !Ref ApiGatewayRestApi
+        ResponseType: DEFAULT_4XX
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+
+    GatewayResponseDefault5XX:
+      Type: AWS::ApiGateway::GatewayResponse
+      Properties:
+        RestApiId: !Ref ApiGatewayRestApi
+        ResponseType: DEFAULT_5XX
+        ResponseParameters:
+          gatewayresponse.header.Access-Control-Allow-Origin: "'*'"
+          gatewayresponse.header.Access-Control-Allow-Headers: "'*'"
+
+    ImagesBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: true
+          IgnorePublicAcls: true
+          BlockPublicPolicy: false
+          RestrictPublicBuckets: false
+        CorsConfiguration:
+          CorsRules:
+            - AllowedOrigins: ['*']
+              AllowedMethods: [GET, POST]
+              AllowedHeaders: ['*']
+
+    ImagesBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref ImagesBucket
+        PolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal: '*'
+              Action: s3:GetObject
+              Resource: !Sub ${ImagesBucket.Arn}/ads/*
+
+    UserPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:service}-users-${sls:stage}
+        UsernameAttributes: [email]
+        AutoVerifiedAttributes: [email]
+        AdminCreateUserConfig:
+          AllowAdminCreateUserOnly: false
+        Policies:
+          PasswordPolicy: { MinimumLength: 8 }
+
+    UserPoolDomain:
+      Type: AWS::Cognito::UserPoolDomain
+      Properties:
+        UserPoolId: !Ref UserPool
+        Domain: ${self:service}-users-${sls:stage}
+
+    UserPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        UserPoolId: !Ref UserPool
+        GenerateSecret: false
+        SupportedIdentityProviders: [COGNITO]
+        AllowedOAuthFlowsUserPoolClient: true
+        AllowedOAuthFlows: [code]
+        AllowedOAuthScopes: [openid, email, profile]
+        CallbackURLs: ['${param:frontendUrl}/']
+        LogoutURLs: ['${param:frontendUrl}/']
+        # ADMIN_USER_PASSWORD_AUTH lets an operator mint test tokens with IAM credentials
+        ExplicitAuthFlows: [ALLOW_USER_SRP_AUTH, ALLOW_REFRESH_TOKEN_AUTH, ALLOW_ADMIN_USER_PASSWORD_AUTH]
+
+    AdminPool:
+      Type: AWS::Cognito::UserPool
+      Properties:
+        UserPoolName: ${self:service}-admins-${sls:stage}
+        UsernameAttributes: [email]
+        AutoVerifiedAttributes: [email]
+        AdminCreateUserConfig:
+          AllowAdminCreateUserOnly: true
+        Policies:
+          PasswordPolicy: { MinimumLength: 8 }
+
+    AdminPoolDomain:
+      Type: AWS::Cognito::UserPoolDomain
+      Properties:
+        UserPoolId: !Ref AdminPool
+        Domain: ${self:service}-admins-${sls:stage}
+
+    AdminPoolClient:
+      Type: AWS::Cognito::UserPoolClient
+      Properties:
+        UserPoolId: !Ref AdminPool
+        GenerateSecret: false
+        SupportedIdentityProviders: [COGNITO]
+        AllowedOAuthFlowsUserPoolClient: true
+        AllowedOAuthFlows: [code]
+        AllowedOAuthScopes: [openid, email, profile]
+        CallbackURLs: ['${param:frontendUrl}/admin']
+        LogoutURLs: ['${param:frontendUrl}/admin']
+        ExplicitAuthFlows: [ALLOW_USER_SRP_AUTH, ALLOW_REFRESH_TOKEN_AUTH, ALLOW_ADMIN_USER_PASSWORD_AUTH]
+
+  Outputs:
+    UserPoolId: { Value: !Ref UserPool }
+    UserPoolClientId: { Value: !Ref UserPoolClient }
+    UserPoolAuthority: { Value: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}' }
+    UserPoolDomainUrl: { Value: !Sub 'https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com' }
+    AdminPoolId: { Value: !Ref AdminPool }
+    AdminPoolClientId: { Value: !Ref AdminPoolClient }
+    AdminPoolAuthority: { Value: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${AdminPool}' }
+    AdminPoolDomainUrl: { Value: !Sub 'https://${AdminPoolDomain}.auth.${AWS::Region}.amazoncognito.com' }
+    ImagesBucketName: { Value: !Ref ImagesBucket }
