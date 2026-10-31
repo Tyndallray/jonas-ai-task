@@ -33,7 +33,7 @@ export const IMAGE_TYPES: Record<string, string> = {
   'image/webp': 'webp',
 };
 
-const IMAGE_KEY = /^ads\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
+export const IMAGE_KEY =/^ads\/[0-9a-f-]{36}\.(jpg|png|webp)$/;
 
 export function validateAdInput(data: Record<string, unknown>): AdInput {
   const title = typeof data.title === 'string' ? data.title.trim() : '';

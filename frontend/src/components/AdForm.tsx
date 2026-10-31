@@ -6,16 +6,20 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import type { AdInput } from '@/lib/ads'
+import { useApi } from '@/lib/useApi'
 import { IMAGE_ACCEPT, useImageUpload } from '@/lib/useImageUpload'
 
 interface Props {
   initial?: AdInput & { imageUrl?: string | null }
   submitLabel: string
   onSubmit: (input: AdInput) => Promise<void>
+  // Shows "Fill with AI", which drafts title and description from the selected image
+  aiFill?: boolean
 }
 
 // Shared by "Post an ad" and "Edit and resubmit"
-export function AdForm({ initial, submitLabel, onSubmit }: Props) {
+export function AdForm({ initial, submitLabel, onSubmit, aiFill }: Props) {
+  const api = useApi()
   const id = useId()
   const upload = useImageUpload()
   const [title, setTitle] = useState(initial?.title ?? '')
@@ -23,15 +27,44 @@ export function AdForm({ initial, submitLabel, onSubmit }: Props) {
   const [price, setPrice] = useState(initial ? String(initial.price) : '')
   const [imageKey, setImageKey] = useState(initial?.imageKey)
   const [file, setFile] = useState<File | null>(null)
+  // Key of the last uploaded file, so "Fill with AI" and submit upload it only once
+  const [uploaded, setUploaded] = useState<{ file: File; key: string }>()
   const [busy, setBusy] = useState(false)
+  const [filling, setFilling] = useState(false)
   const [error, setError] = useState<string>()
+
+  async function uploadOnce(f: File) {
+    if (uploaded?.file === f) return uploaded.key
+    const key = await upload(f)
+    setUploaded({ file: f, key })
+    return key
+  }
+
+  async function handleFill() {
+    if (!file) return
+    setFilling(true)
+    setError(undefined)
+    try {
+      const key = await uploadOnce(file)
+      const suggestion = await api<{ title: string; description: string }>('/ads/describe', {
+        method: 'POST',
+        body: JSON.stringify({ imageKey: key }),
+      })
+      setTitle(suggestion.title)
+      setDescription(suggestion.description)
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setFilling(false)
+    }
+  }
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
     setError(undefined)
     try {
-      const key = file ? await upload(file) : imageKey
+      const key = file ? await uploadOnce(file) : imageKey
       await onSubmit({ title, description, price: Number(price), imageKey: key })
     } catch (err) {
       setError((err as Error).message)
@@ -87,6 +120,13 @@ export function AdForm({ initial, submitLabel, onSubmit }: Props) {
             />
             <p className="text-sm text-muted-foreground">Optional. JPEG, PNG or WebP up to 5 MB.</p>
           </div>
+          {aiFill && (
+            <div>
+              <Button type="button" variant="outline" onClick={handleFill} disabled={!file || filling || busy}>
+                {filling ? 'Filling…' : 'Fill with AI'}
+              </Button>
+            </div>
+          )}
           {imageKey && !file && (
             <div className="flex items-center gap-4">
               {initial?.imageUrl && (
@@ -99,7 +139,7 @@ export function AdForm({ initial, submitLabel, onSubmit }: Props) {
           )}
           {error && <ErrorAlert>{error}</ErrorAlert>}
           <div>
-            <Button type="submit" disabled={busy}>
+            <Button type="submit" disabled={busy || filling}>
               {busy ? 'Saving…' : submitLabel}
             </Button>
           </div>

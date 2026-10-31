@@ -19,7 +19,7 @@ export function NewAd() {
         title="Post an ad"
         description="Your ad will be visible to everyone once an admin approves it."
       />
-      <AdForm submitLabel="Submit for review" onSubmit={submit} />
+      <AdForm submitLabel="Submit for review" onSubmit={submit} aiFill />
     </section>
   )
 }
