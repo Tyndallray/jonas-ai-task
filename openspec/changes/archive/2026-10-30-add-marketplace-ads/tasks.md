@@ -25,8 +25,8 @@
 
 ## 4. Frontend
 
-- [ ] 4.1 Switch `useApi` to send `id_token`. Add the admin OIDC client (a separate `UserManager` with namespaced storage) and the admin env vars to `.env.example`. Point the placeholder region at `us-east-1`. Verify: user and admin can each sign in, and the sessions do not clash.
-- [ ] 4.2 Build the user pages:
+- [x] 4.1 Switch `useApi` to send `id_token`. Add the admin OIDC client (a separate `UserManager` with namespaced storage) and the admin env vars to `.env.example`. Point the placeholder region at `us-east-1`. Verify: user and admin can each sign in, and the sessions do not clash.
+- [x] 4.2 Build the user pages:
   - feed with "load more" and the poster's email, at `/`
   - ad detail at `/ads/:id`
   - create with image upload at `/ads/new`
@@ -34,7 +34,7 @@
   - edit and resubmit at `/my-ads/:id/edit`, for `NEEDS_INFO` ads only
 
   Verify manually that a user can create, see, edit and delete an ad.
-- [ ] 4.3 Build the `/admin` queue with ad detail and approve, reject and request-info actions (note required where needed). Verify manually that an approved ad appears at the top of the public feed.
+- [x] 4.3 Build the `/admin` queue with ad detail and approve, reject and request-info actions (note required where needed). Verify manually that an approved ad appears at the top of the public feed.
 
 ## 5. Docs
 
