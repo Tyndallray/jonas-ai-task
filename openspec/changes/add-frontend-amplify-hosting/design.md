@@ -30,7 +30,7 @@
 
 5. **SPA rewrite.** Add a `CustomRules` regex rule that rewrites every path without a static-file extension to `/index.html` with status 200.
 
-6. **GitHub token.** `AccessToken: '{{resolve:secretsmanager:jonas-ai-task/github-token}}'`. CloudFormation resolves it at deploy time, and it never appears in the template or the repo. The token is only used to authorize the Amplify GitHub App when the App resource is created or updated.
+6. **GitHub token from SSM.** The token lives in the SecureString parameter `/jonas-ai-task/github-token`. CloudFormation's `ssm-secure` dynamic reference only works for a fixed list of resource types, and Amplify is not on it. Instead, Serverless resolves `${ssm:/jonas-ai-task/github-token}` (only in the `dev`/`prod` params) and passes it through `provider.stackParameters` into a `NoEcho` stack parameter that `AccessToken` refs. The token stays out of the compiled template and the repo, and is masked in stack details. Amplify only uses it to authorize the Amplify GitHub App, and does not store it.
 
 7. **Builds.** `EnableAutoBuild: true`. The `prod` branch has `Stage: PRODUCTION` and the `dev` branch has `Stage: DEVELOPMENT`. Add `FrontendUrl` to the stack outputs (conditional).
 
@@ -38,12 +38,12 @@
 
 - [CloudFormation creating a branch does not start a build, and changing env vars does not rebuild] → After the first deploy, run `aws amplify start-job --job-type RELEASE` once per stage. The env values are stable IDs, so later rebuilds are rare.
 - [A push that changes both backend and frontend can build the frontend before the stack updates] → Only matters when env values change. Re-run the Amplify job if it happens.
-- [The deploy IAM user lacks permissions] → Grant `amplify:*` on the app and `secretsmanager:GetSecretValue` on the secret before the first CI deploy.
-- [Missing secret or Amplify GitHub App not installed on this repo] → The deploy fails with a clear CloudFormation error. The README covers both prerequisites.
+- [The deploy IAM user lacks permissions] → The deploy user needs `amplify:*` and `ssm:GetParameter` on the parameter. The current CI user is in the `Admin` group.
+- [Missing parameter or Amplify GitHub App not installed on this repo] → The deploy fails with a clear CloudFormation error. The README covers both prerequisites.
 
 ## Migration Plan
 
-1. One-time setup: create the GitHub PAT, then run `aws secretsmanager create-secret --name jonas-ai-task/github-token --profile afferenza`. Confirm the Amplify GitHub App has access to `jonas-ai-task` and extend the deploy user's IAM policy.
+1. One-time setup: store the GitHub PAT as the SecureString `/jonas-ai-task/github-token`, and confirm the Amplify GitHub App has access to `jonas-ai-task`.
 2. Merge to `dev`. CI deploys the dev stack, which creates the App and Branch and updates the Cognito URLs. Start the first build and check sign-in.
 3. Merge `dev` into `prod`. That creates the prod stack and its app. Start its first build.
 

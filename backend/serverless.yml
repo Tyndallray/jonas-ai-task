@@ -6,12 +6,22 @@ params:
   default:
     # SPA origin, used for Cognito callback/sign-out URLs
     frontendUrl: http://localhost:5173
+    githubToken: ''
+  # Only the hosted stages read the Amplify GitHub token (SSM SecureString)
+  dev:
+    githubToken: ${ssm:/jonas-ai-task/github-token}
+  prod:
+    githubToken: ${ssm:/jonas-ai-task/github-token}
 
 provider:
   name: aws
   runtime: nodejs24.x
   architecture: arm64
   region: us-east-1
+  # CloudFormation can't resolve ssm-secure for Amplify, so the token goes in as a NoEcho parameter
+  stackParameters:
+    - ParameterKey: GitHubToken
+      ParameterValue: ${param:githubToken}
   environment:
     ADS_TABLE: ${self:service}-ads-${sls:stage}
     IMAGES_BUCKET: !Ref ImagesBucket
@@ -38,6 +48,8 @@ provider:
 # Each authorizer trusts only its own pool, so tokens from the other pool are rejected at the gateway.
 # Without scopes, Cognito authorizers validate ID tokens (which carry the email claim).
 custom:
+  amplifyStage:
+    prod: PRODUCTION
   userAuthorizer: &userAuthorizer
     name: userAuthorizer
     type: COGNITO_USER_POOLS
@@ -227,8 +239,11 @@ resources:
         AllowedOAuthFlowsUserPoolClient: true
         AllowedOAuthFlows: [code]
         AllowedOAuthScopes: [openid, email, profile]
-        CallbackURLs: ['${param:frontendUrl}/']
-        LogoutURLs: ['${param:frontendUrl}/']
+        CallbackURLs: &userAppUrls !If
+          - IsHostedStage
+          - ['${param:frontendUrl}/', !Sub 'https://${sls:stage}.${FrontendApp.DefaultDomain}/']
+          - ['${param:frontendUrl}/']
+        LogoutURLs: *userAppUrls
         # ADMIN_USER_PASSWORD_AUTH lets an operator mint test tokens with IAM credentials
         ExplicitAuthFlows: [ALLOW_USER_SRP_AUTH, ALLOW_REFRESH_TOKEN_AUTH, ALLOW_ADMIN_USER_PASSWORD_AUTH]
 
@@ -258,9 +273,79 @@ resources:
         AllowedOAuthFlowsUserPoolClient: true
         AllowedOAuthFlows: [code]
         AllowedOAuthScopes: [openid, email, profile]
-        CallbackURLs: ['${param:frontendUrl}/admin']
-        LogoutURLs: ['${param:frontendUrl}/admin']
+        CallbackURLs: &adminAppUrls !If
+          - IsHostedStage
+          - ['${param:frontendUrl}/admin', !Sub 'https://${sls:stage}.${FrontendApp.DefaultDomain}/admin']
+          - ['${param:frontendUrl}/admin']
+        LogoutURLs: *adminAppUrls
         ExplicitAuthFlows: [ALLOW_USER_SRP_AUTH, ALLOW_REFRESH_TOKEN_AUTH, ALLOW_ADMIN_USER_PASSWORD_AUTH]
+
+    # Amplify Hosting for the SPA: one app per hosted stage, building the branch named after the stage
+    FrontendApp:
+      Type: AWS::Amplify::App
+      Condition: IsHostedStage
+      Properties:
+        Name: jonas-ai-task-frontend-${sls:stage}
+        Repository: https://github.com/Tyndallray/jonas-ai-task
+        AccessToken: !Ref GitHubToken
+        Platform: WEB
+        EnvironmentVariables:
+          - { Name: AMPLIFY_MONOREPO_APP_ROOT, Value: frontend }
+        BuildSpec: |
+          version: 1
+          applications:
+            - appRoot: frontend
+              frontend:
+                phases:
+                  preBuild:
+                    commands:
+                      - nvm install 22
+                      - nvm use 22
+                      - npm ci
+                  build:
+                    commands:
+                      - npm run build
+                artifacts:
+                  baseDirectory: dist
+                  files:
+                    - '**/*'
+                cache:
+                  paths:
+                    - node_modules/**/*
+        # Client-side routes (/ads/:id, /admin, ...) serve index.html; files with an extension are served as-is
+        CustomRules:
+          - Source: '</^[^.]+$|\.(?!(css|gif|ico|jpg|jpeg|js|json|map|png|svg|txt|ttf|webmanifest|webp|woff|woff2)$)([^.]+$)/>'
+            Target: /index.html
+            Status: '200'
+
+    # Env vars live on the branch (not the app) so the Cognito clients can depend on the app's domain
+    FrontendBranch:
+      Type: AWS::Amplify::Branch
+      Condition: IsHostedStage
+      Properties:
+        AppId: !GetAtt FrontendApp.AppId
+        BranchName: ${sls:stage}
+        EnableAutoBuild: true
+        Stage: ${self:custom.amplifyStage.${sls:stage}, 'DEVELOPMENT'}
+        EnvironmentVariables:
+          - { Name: VITE_API_BASE_URL, Value: !Sub 'https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/${sls:stage}' }
+          - { Name: VITE_COGNITO_AUTHORITY, Value: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${UserPool}' }
+          - { Name: VITE_COGNITO_CLIENT_ID, Value: !Ref UserPoolClient }
+          - { Name: VITE_COGNITO_DOMAIN, Value: !Sub 'https://${UserPoolDomain}.auth.${AWS::Region}.amazoncognito.com' }
+          - { Name: VITE_ADMIN_COGNITO_AUTHORITY, Value: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${AdminPool}' }
+          - { Name: VITE_ADMIN_COGNITO_CLIENT_ID, Value: !Ref AdminPoolClient }
+          - { Name: VITE_ADMIN_COGNITO_DOMAIN, Value: !Sub 'https://${AdminPoolDomain}.auth.${AWS::Region}.amazoncognito.com' }
+
+  Parameters:
+    GitHubToken:
+      Type: String
+      NoEcho: true
+      Default: ''
+
+  Conditions:
+    IsHostedStage: !Or
+      - !Equals ['${sls:stage}', dev]
+      - !Equals ['${sls:stage}', prod]
 
   Outputs:
     UserPoolId: { Value: !Ref UserPool }
@@ -272,3 +357,5 @@ resources:
     AdminPoolAuthority: { Value: !Sub 'https://cognito-idp.${AWS::Region}.amazonaws.com/${AdminPool}' }
     AdminPoolDomainUrl: { Value: !Sub 'https://${AdminPoolDomain}.auth.${AWS::Region}.amazoncognito.com' }
     ImagesBucketName: { Value: !Ref ImagesBucket }
+    FrontendAppId: { Condition: IsHostedStage, Value: !GetAtt FrontendApp.AppId }
+    FrontendUrl: { Condition: IsHostedStage, Value: !Sub 'https://${sls:stage}.${FrontendApp.DefaultDomain}' }

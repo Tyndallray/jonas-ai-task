@@ -10,7 +10,7 @@ The frontend only runs on `localhost`; its README already assumes "AWS Amplify b
 - Amplify branch env vars (`VITE_COGNITO_*`, `VITE_ADMIN_COGNITO_*`, `VITE_API_BASE_URL`) are set from the same stack's resources.
 - SPA rewrite so deep links (`/ads/:id`, `/admin`, ...) serve `index.html`.
 - Cognito user/admin app clients add the Amplify branch URL to callback and sign-out URLs, keeping `http://localhost:5173` for local dev.
-- The GitHub token is read from Secrets Manager (`jonas-ai-task/github-token`) at deploy time.
+- The GitHub token is read from the SSM SecureString `/jonas-ai-task/github-token` at deploy time.
 - New stack output `FrontendUrl`; READMEs document the one-time setup.
 
 ## Capabilities
@@ -30,4 +30,4 @@ The frontend only runs on `localhost`; its README already assumes "AWS Amplify b
 
 - `backend/serverless.yml` (Amplify App/Branch resources with inline monorepo build spec, stage condition, Cognito client URLs, output).
 - `backend/README.md`, `frontend/README.md`.
-- New AWS prerequisites: the Amplify GitHub App installed on the repo, a GitHub PAT in Secrets Manager, and Amplify + Secrets Manager permissions for the deploy IAM user.
+- New AWS prerequisites: the Amplify GitHub App installed on the repo, a GitHub PAT in SSM Parameter Store, and Amplify + SSM read permissions for the deploy IAM user.
