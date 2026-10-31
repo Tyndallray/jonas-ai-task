@@ -29,9 +29,9 @@ The stack outputs feed `frontend/.env.local`:
 | `AdminPoolClientId` | `VITE_ADMIN_COGNITO_CLIENT_ID` |
 | `AdminPoolDomainUrl` | `VITE_ADMIN_COGNITO_DOMAIN` |
 
-`POST /ads/describe` calls Claude through the Bedrock Mantle endpoint (`bedrock-mantle:CreateInference`).
-Enable access to the model in the Bedrock console (us-east-1) before deploying. The model is
-`BEDROCK_MODEL_ID` in `serverless.yml` (default `anthropic.claude-opus-5-5`; `anthropic.claude-haiku-5-5` is cheaper).
+`POST /ads/describe` calls Amazon Nova through the Bedrock Converse API (`bedrock:InvokeModel`). The model is
+`BEDROCK_MODEL_ID` in `serverless.yml` (default `us.amazon.nova-2-lite-v1:0`; IAM allows any `amazon.nova-*`
+model, e.g. `us.amazon.nova-pro-v1:0` for higher quality). Amazon models need no access request.
 
 The Cognito callback/sign-out URLs default to `http://localhost:5173`. For another origin, deploy with
 `npm run deploy -- --param="frontendUrl=https://your.site"`.
@@ -84,7 +84,7 @@ src/lib/http.ts       # handler wrapper, JSON responses, authorizer claims
 src/lib/ads.ts        # Ad model, validation, response shapes
 src/lib/adsRepo.ts    # DynamoDB access (conditional status transitions, pagination)
 src/lib/images.ts     # S3 presigned POST, image deletion, image loading for AI
-src/lib/describe.ts   # Claude on Bedrock: title/description suggestion from an image
+src/lib/describe.ts   # Amazon Nova on Bedrock: title/description suggestion from an image
 src/ads/*.ts          # public feed/detail, create, image upload, AI describe
 src/me/*.ts           # owner's ads: list, edit + resubmit, delete
 src/admin/*.ts        # review queue, moderation decision

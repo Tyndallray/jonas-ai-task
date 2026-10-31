@@ -7,7 +7,7 @@ Writing a good title and description is the slowest part of posting an ad. Most 
 ## What Changes
 
 - New authenticated endpoint `POST /ads/describe`. It takes an image as either an already-uploaded ad image key or a public `https` image URL. It returns a suggested `title` and `description` that fit the existing ad field limits.
-- The backend calls Claude on Amazon Bedrock (us-east-1, `afferenza` profile) with the image and a fixed prompt, and asks for structured JSON output.
+- The backend calls Amazon Nova 2 Lite on Amazon Bedrock (us-east-1, `afferenza` profile) through the Converse API, with the image and a fixed prompt, and gets structured output back from a forced tool call.
 - The "Post an ad" form gets a **Fill with AI** button, enabled once an image is selected. It uploads the image the usual way, calls the endpoint, and fills the title and description, which the user can still edit. The uploaded image is reused when the ad is submitted, so it isn't uploaded twice.
 - New Lambda IAM permissions (Bedrock invoke, S3 read of `ads/*`), a longer timeout for this function, and a new SDK dependency.
 
@@ -25,6 +25,6 @@ None. Ad creation rules and validation are unchanged, and suggestions are only p
 
 ## Impact
 
-- **Backend**: new `src/ads/describe.ts` handler and a Bedrock helper in `src/lib/`. `serverless.yml` gets a new function, IAM statements and a model-ID env var. Adds the `@anthropic-ai/bedrock-sdk` dependency.
+- **Backend**: new `src/ads/describe.ts` handler and a Bedrock helper in `src/lib/`. `serverless.yml` gets a new function, IAM statements and a model-ID env var. Adds the `@aws-sdk/client-bedrock-runtime` dependency.
 - **Frontend**: `AdForm.tsx` (button, upload reuse), `NewAd.tsx` (turn the option on), and a small `describe` API call.
-- **AWS**: Claude model access must be enabled in Bedrock for the account in us-east-1. Each request costs per-token model usage.
+- **AWS**: uses Amazon's own Nova models, which need no model-access request (Anthropic model access couldn't be enabled on the account). Each request costs per-token model usage.

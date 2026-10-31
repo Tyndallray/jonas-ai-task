@@ -1,10 +1,11 @@
 import type { APIGatewayProxyEvent } from 'aws-lambda';
 import { describe, expect, it, vi } from 'vitest';
 
-const create = vi.fn();
-vi.mock('@anthropic-ai/bedrock-sdk', () => ({
-  AnthropicBedrockMantle: class {
-    messages = { create };
+const send = vi.fn();
+vi.mock('@aws-sdk/client-bedrock-runtime', async (importOriginal) => ({
+  ...(await importOriginal<object>()),
+  BedrockRuntimeClient: class {
+    send = send;
   },
 }));
 vi.mock('../src/lib/images', () => ({
@@ -25,23 +26,29 @@ function event(body: unknown) {
 
 describe('describe ad image', () => {
   it('returns a suggested title and description for an uploaded image', async () => {
-    create.mockResolvedValueOnce({
-      stop_reason: 'end_turn',
-      content: [{ type: 'text', text: JSON.stringify({ title: 'Red road bike', description: 'A 56cm road bike.' }) }],
+    send.mockResolvedValueOnce({
+      stopReason: 'tool_use',
+      output: {
+        message: {
+          content: [
+            { toolUse: { name: 'submit_listing', input: { title: 'Red road bike', description: 'A 56cm road bike.' } } },
+          ],
+        },
+      },
     });
 
     const res = await describeAd(event({ imageKey }));
 
     expect(res.statusCode).toBe(200);
     expect(JSON.parse(res.body)).toEqual({ title: 'Red road bike', description: 'A 56cm road bike.' });
-    expect(create.mock.calls[0][0].messages[0].content[0].source).toMatchObject({
-      type: 'base64',
-      media_type: 'image/jpeg',
-    });
+    expect(send.mock.calls[0][0].input.messages[0].content[0].image).toMatchObject({ format: 'jpeg' });
   });
 
-  it('responds 422 when the model declines', async () => {
-    create.mockResolvedValueOnce({ stop_reason: 'refusal', content: [] });
+  it('responds 422 when the model returns no listing', async () => {
+    send.mockResolvedValueOnce({
+      stopReason: 'content_filtered',
+      output: { message: { content: [{ text: 'I cannot help with that.' }] } },
+    });
 
     const res = await describeAd(event({ imageKey }));
 

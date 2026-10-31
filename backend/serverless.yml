@@ -16,7 +16,7 @@ provider:
     ADS_TABLE: ${self:service}-ads-${sls:stage}
     IMAGES_BUCKET: !Ref ImagesBucket
     IMAGES_BASE_URL: !Sub https://${ImagesBucket}.s3.${AWS::Region}.amazonaws.com
-    BEDROCK_MODEL_ID: anthropic.claude-opus-5-5
+    BEDROCK_MODEL_ID: us.amazon.nova-2-lite-v1:0
   iam:
     role:
       statements:
@@ -36,11 +36,13 @@ provider:
             - s3:DeleteObject
             - s3:GetObject
           Resource: !Sub ${ImagesBucket.Arn}/ads/*
-        # Claude via the Bedrock Mantle (Messages API) endpoint; resource scoping not documented yet
+        # Converse with Amazon Nova; a US inference profile routes to the model in any US region
         - Effect: Allow
           Action:
-            - bedrock-mantle:CreateInference
-          Resource: '*'
+            - bedrock:InvokeModel
+          Resource:
+            - "arn:aws:bedrock:${aws:region}:${aws:accountId}:inference-profile/us.amazon.nova-*"
+            - "arn:aws:bedrock:*::foundation-model/amazon.nova-*"
 
 # Each authorizer trusts only its own pool, so tokens from the other pool are rejected at the gateway.
 # Without scopes, Cognito authorizers validate ID tokens (which carry the email claim).
