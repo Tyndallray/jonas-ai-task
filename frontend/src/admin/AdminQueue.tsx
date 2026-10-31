@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { formatDate, formatPrice, type AdDetail, type Page } from '../lib/ads'
-import { useApi } from '../lib/useApi'
+import { AdListItem } from '@/components/AdListItem'
+import { PageHeader } from '@/components/PageHeader'
+import { EmptyState, ErrorAlert, LoadingState, NoteCallout } from '@/components/states'
+import { StatusBadge } from '@/components/StatusBadge'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
+import { formatDate, formatPrice, type AdDetail, type Page } from '@/lib/ads'
+import { useApi } from '@/lib/useApi'
 
 type Action = 'approve' | 'reject' | 'request_info'
 
@@ -35,11 +41,11 @@ export function AdminQueue() {
   }, [])
 
   return (
-    <section>
-      <h1>Review queue</h1>
-      {error && <p className="error">{error}</p>}
-      {!loading && ads.length === 0 && <p>Nothing to review.</p>}
-      <ul className="ad-list">
+    <section className="space-y-6">
+      <PageHeader title="Review queue" description="Pending ads, oldest first." />
+      {error && <ErrorAlert>{error}</ErrorAlert>}
+      {!loading && ads.length === 0 && <EmptyState title="Nothing to review." />}
+      <ul className="grid gap-4">
         {ads.map((ad) => (
           <ReviewItem
             key={ad.id}
@@ -48,11 +54,13 @@ export function AdminQueue() {
           />
         ))}
       </ul>
-      {loading && <p>Loading…</p>}
+      {loading && <LoadingState />}
       {cursor && !loading && (
-        <button type="button" onClick={() => load(cursor)}>
-          Load more
-        </button>
+        <div className="flex justify-center">
+          <Button variant="outline" onClick={() => load(cursor)}>
+            Load more
+          </Button>
+        </div>
       )}
     </section>
   )
@@ -84,41 +92,37 @@ function ReviewItem({ ad, onDecided }: { ad: AdDetail; onDecided: () => void }) 
   }
 
   return (
-    <li className="ad-row review">
-      {ad.imageUrl ? (
-        <a href={ad.imageUrl} target="_blank" rel="noreferrer">
-          <img src={ad.imageUrl} alt="" />
-        </a>
-      ) : (
-        <div className="no-image" />
-      )}
-      <div>
-        <h2>{ad.title}</h2>
-        <p>
-          {formatPrice(ad.price)} · {ad.ownerEmail} · submitted {formatDate(ad.statusAt)}
-        </p>
-        <p className="description">{ad.description}</p>
-        {ad.adminNote && <p className="note">Previous note: {ad.adminNote}</p>}
-        <textarea
-          placeholder="Note for the poster (required to reject or request info)"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-          maxLength={1000}
-          rows={2}
-        />
-        {error && <p className="error">{error}</p>}
-        <div className="actions">
-          <button type="button" disabled={busy} onClick={() => decide('approve')}>
+    <AdListItem
+      imageUrl={ad.imageUrl}
+      imageHref={ad.imageUrl ?? undefined}
+      title={ad.title}
+      badge={<StatusBadge status={ad.status} />}
+      meta={`${formatPrice(ad.price)} · ${ad.ownerEmail} · submitted ${formatDate(ad.statusAt)}`}
+      actions={
+        <>
+          <Button size="sm" disabled={busy} onClick={() => decide('approve')}>
             Approve
-          </button>
-          <button type="button" disabled={busy} onClick={() => decide('request_info')}>
+          </Button>
+          <Button size="sm" variant="outline" disabled={busy} onClick={() => decide('request_info')}>
             Request info
-          </button>
-          <button type="button" disabled={busy} onClick={() => decide('reject')}>
+          </Button>
+          <Button size="sm" variant="destructive" disabled={busy} onClick={() => decide('reject')}>
             Reject
-          </button>
-        </div>
-      </div>
-    </li>
+          </Button>
+        </>
+      }
+    >
+      <p className="text-sm whitespace-pre-wrap break-words">{ad.description}</p>
+      {ad.adminNote && <NoteCallout label="Previous note">{ad.adminNote}</NoteCallout>}
+      <Textarea
+        aria-label="Note for the poster"
+        placeholder="Note for the poster (required to reject or request info)"
+        value={note}
+        onChange={(e) => setNote(e.target.value)}
+        maxLength={1000}
+        rows={2}
+      />
+      {error && <ErrorAlert>{error}</ErrorAlert>}
+    </AdListItem>
   )
 }

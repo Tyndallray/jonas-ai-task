@@ -1,7 +1,13 @@
-import { useState, type FormEvent } from 'react'
-import type { AdInput } from '../lib/ads'
-import { useApi } from '../lib/useApi'
-import { IMAGE_ACCEPT, useImageUpload } from '../lib/useImageUpload'
+import { useId, useState, type FormEvent } from 'react'
+import { ErrorAlert } from '@/components/states'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import type { AdInput } from '@/lib/ads'
+import { useApi } from '@/lib/useApi'
+import { IMAGE_ACCEPT, useImageUpload } from '@/lib/useImageUpload'
 
 interface Props {
   initial?: AdInput & { imageUrl?: string | null }
@@ -14,6 +20,7 @@ interface Props {
 // Shared by "Post an ad" and "Edit and resubmit"
 export function AdForm({ initial, submitLabel, onSubmit, aiFill }: Props) {
   const api = useApi()
+  const id = useId()
   const upload = useImageUpload()
   const [title, setTitle] = useState(initial?.title ?? '')
   const [description, setDescription] = useState(initial?.description ?? '')
@@ -66,57 +73,78 @@ export function AdForm({ initial, submitLabel, onSubmit, aiFill }: Props) {
   }
 
   return (
-    <form className="form" onSubmit={handleSubmit}>
-      <label>
-        Title
-        <input value={title} onChange={(e) => setTitle(e.target.value)} maxLength={100} required />
-      </label>
-      <label>
-        Description
-        <textarea
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          maxLength={2000}
-          rows={6}
-          required
-        />
-      </label>
-      <label>
-        Price (£)
-        <input
-          type="number"
-          min="0"
-          step="0.01"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          required
-        />
-      </label>
-      <label>
-        Image (optional, JPEG/PNG/WebP up to 5 MB)
-        <input
-          type="file"
-          accept={IMAGE_ACCEPT}
-          onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-        />
-      </label>
-      {aiFill && (
-        <button type="button" onClick={handleFill} disabled={!file || filling || busy}>
-          {filling ? 'Filling…' : 'Fill with AI'}
-        </button>
-      )}
-      {imageKey && !file && (
-        <div className="current-image">
-          {initial?.imageUrl && <img src={initial.imageUrl} alt="" />}
-          <button type="button" onClick={() => setImageKey(undefined)}>
-            Remove image
-          </button>
-        </div>
-      )}
-      {error && <p className="error">{error}</p>}
-      <button type="submit" disabled={busy || filling}>
-        {busy ? 'Saving…' : submitLabel}
-      </button>
-    </form>
+    <Card className="max-w-2xl">
+      <CardContent>
+        <form className="grid gap-6" onSubmit={handleSubmit}>
+          <div className="grid gap-2">
+            <Label htmlFor={`${id}-title`}>Title</Label>
+            <Input
+              id={`${id}-title`}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={100}
+              required
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor={`${id}-description`}>Description</Label>
+            <Textarea
+              id={`${id}-description`}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={2000}
+              rows={6}
+              required
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor={`${id}-price`}>Price (£)</Label>
+            <Input
+              id={`${id}-price`}
+              type="number"
+              min="0"
+              step="0.01"
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
+              className="max-w-48"
+              required
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor={`${id}-image`}>Image</Label>
+            <Input
+              id={`${id}-image`}
+              type="file"
+              accept={IMAGE_ACCEPT}
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
+            <p className="text-sm text-muted-foreground">Optional. JPEG, PNG or WebP up to 5 MB.</p>
+          </div>
+          {aiFill && (
+            <div>
+              <Button type="button" variant="outline" onClick={handleFill} disabled={!file || filling || busy}>
+                {filling ? 'Filling…' : 'Fill with AI'}
+              </Button>
+            </div>
+          )}
+          {imageKey && !file && (
+            <div className="flex items-center gap-4">
+              {initial?.imageUrl && (
+                <img src={initial.imageUrl} alt="" className="h-18 w-24 rounded-md border object-cover" />
+              )}
+              <Button type="button" variant="outline" size="sm" onClick={() => setImageKey(undefined)}>
+                Remove image
+              </Button>
+            </div>
+          )}
+          {error && <ErrorAlert>{error}</ErrorAlert>}
+          <div>
+            <Button type="submit" disabled={busy || filling}>
+              {busy ? 'Saving…' : submitLabel}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
+    </Card>
   )
 }

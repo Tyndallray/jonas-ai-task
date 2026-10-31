@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom'
-import { AdForm } from '../components/AdForm'
-import type { AdInput } from '../lib/ads'
-import { useApi } from '../lib/useApi'
+import { AdForm } from '@/components/AdForm'
+import { PageHeader } from '@/components/PageHeader'
+import type { AdInput } from '@/lib/ads'
+import { useApi } from '@/lib/useApi'
 
 export function NewAd() {
   const api = useApi()
@@ -14,8 +15,10 @@ export function NewAd() {
 
   return (
     <section>
-      <h1>Post an ad</h1>
-      <p>Your ad will be visible to everyone once an admin approves it.</p>
+      <PageHeader
+        title="Post an ad"
+        description="Your ad will be visible to everyone once an admin approves it."
+      />
       <AdForm submitLabel="Submit for review" onSubmit={submit} aiFill />
     </section>
   )

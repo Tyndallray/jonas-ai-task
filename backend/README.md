@@ -36,6 +36,29 @@ model, e.g. `us.amazon.nova-pro-v1:0` for higher quality). Amazon models need no
 The Cognito callback/sign-out URLs default to `http://localhost:5173`. For another origin, deploy with
 `npm run deploy -- --param="frontendUrl=https://your.site"`.
 
+### Frontend hosting (Amplify)
+
+The `dev` and `prod` stages also create an Amplify Hosting app (`jonas-ai-task-frontend-<stage>`) that
+builds `frontend/` from the branch of the same name on every push. The branch gets the `VITE_*` values
+above from this stack, and both Cognito clients also allow the hosted URL (`FrontendUrl` output, e.g.
+`https://dev.<appId>.amplifyapp.com`). Other stages skip hosting.
+
+One-time prerequisites:
+
+- A GitHub token stored as the SSM SecureString `/jonas-ai-task/github-token` (us-east-1). Serverless
+  reads it and passes it as a `NoEcho` stack parameter, because CloudFormation can't resolve `ssm-secure`
+  for Amplify. Like every resolved `${ssm:...}` value, it also ends up in Serverless's state file in
+  the private deployment bucket.
+- The Amplify GitHub App must have access to `Tyndallray/jonas-ai-task`.
+
+CloudFormation doesn't start a build when it creates the branch, and Amplify doesn't rebuild when env
+vars change, so after the first deploy of a stage (or when its pools/API are recreated) start a build:
+
+```bash
+aws amplify start-job --profile afferenza --region us-east-1 \
+  --app-id <FrontendAppId> --branch-name <stage> --job-type RELEASE
+```
+
 ### Create an admin
 
 Admins cannot sign up. Create one with the AdminPoolId output:
