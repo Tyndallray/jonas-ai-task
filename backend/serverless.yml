@@ -222,6 +222,8 @@ resources:
       Type: AWS::Cognito::UserPool
       Properties:
         UserPoolName: ${self:service}-users-${sls:stage}
+        # Managed Login branding needs the Essentials tier or higher
+        UserPoolTier: ESSENTIALS
         UsernameAttributes: [email]
         AutoVerifiedAttributes: [email]
         AdminCreateUserConfig:
@@ -244,6 +246,8 @@ resources:
       Properties:
         UserPoolId: !Ref UserPool
         Domain: ${self:service}-users-${sls:stage}
+        # Managed Login (v2); every app client on the domain needs a branding style below
+        ManagedLoginVersion: 2
 
     UserPoolClient:
       Type: AWS::Cognito::UserPoolClient
@@ -266,6 +270,7 @@ resources:
       Type: AWS::Cognito::UserPool
       Properties:
         UserPoolName: ${self:service}-admins-${sls:stage}
+        UserPoolTier: ESSENTIALS
         UsernameAttributes: [email]
         AutoVerifiedAttributes: [email]
         AdminCreateUserConfig:
@@ -288,6 +293,7 @@ resources:
       Properties:
         UserPoolId: !Ref AdminPool
         Domain: ${self:service}-admins-${sls:stage}
+        ManagedLoginVersion: 2
 
     AdminPoolClient:
       Type: AWS::Cognito::UserPoolClient
@@ -305,6 +311,24 @@ resources:
         LogoutURLs: *adminAppUrls
         ExplicitAuthFlows: [ALLOW_USER_SRP_AUTH, ALLOW_REFRESH_TOKEN_AUTH, ALLOW_ADMIN_USER_PASSWORD_AUTH]
 
+    # Sign-in pages styled with the app theme (emerald on slate, follows the browser's color scheme)
+    UserPoolBranding:
+      Type: AWS::Cognito::ManagedLoginBranding
+      Properties:
+        UserPoolId: !Ref UserPool
+        ClientId: !Ref UserPoolClient
+        UseCognitoProvidedValues: false
+        Settings: ${file(./branding/managed-login.json)}
+        Assets: ${file(./branding/assets.cjs)}
+
+    AdminPoolBranding:
+      Type: AWS::Cognito::ManagedLoginBranding
+      Properties:
+        UserPoolId: !Ref AdminPool
+        ClientId: !Ref AdminPoolClient
+        UseCognitoProvidedValues: false
+        Settings: ${file(./branding/managed-login.json)}
+        Assets: ${file(./branding/assets.cjs)}
     # Amplify Hosting for the SPA: one app per hosted stage, building the branch named after the stage
     FrontendApp:
       Type: AWS::Amplify::App

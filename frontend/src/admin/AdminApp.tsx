@@ -1,8 +1,9 @@
 import { AuthProvider, useAuth } from 'react-oidc-context'
-import { Link } from 'react-router-dom'
-import { adminCognitoConfig, adminOidcConfig } from '../auth/config'
-import { ProtectedRoute } from '../auth/ProtectedRoute'
-import { useLogout } from '../auth/useLogout'
+import { adminCognitoConfig, adminOidcConfig } from '@/auth/config'
+import { ProtectedRoute } from '@/auth/ProtectedRoute'
+import { useLogout } from '@/auth/useLogout'
+import { AppHeader } from '@/components/AppHeader'
+import { LoadingState } from '@/components/states'
 import { AdminQueue } from './AdminQueue'
 
 // Admin area: a nested AuthProvider against the admin pool, so useAuth/useApi
@@ -19,25 +20,21 @@ function AdminShell() {
   const auth = useAuth()
   const logout = useLogout(adminCognitoConfig)
 
-  if (auth.isLoading) return <p className="centered">Loading…</p>
+  if (auth.isLoading) return <LoadingState fullPage />
 
   return (
     <>
-      <header className="header admin-header">
-        <nav>
-          <Link to="/admin">Review queue</Link>
-          <Link to="/">Public site</Link>
-        </nav>
-        {auth.isAuthenticated && (
-          <div className="user">
-            <span>Admin: {auth.user?.profile.email}</span>
-            <button type="button" onClick={logout}>
-              Sign out
-            </button>
-          </div>
-        )}
-      </header>
-      <main className="main">
+      <AppHeader
+        admin
+        homeTo="/admin"
+        links={[
+          { to: '/admin', label: 'Review queue' },
+          { to: '/', label: 'Public site' },
+        ]}
+        email={auth.isAuthenticated ? auth.user?.profile.email : undefined}
+        onSignOut={logout}
+      />
+      <main className="mx-auto max-w-5xl px-4 py-8">
         <ProtectedRoute>
           <AdminQueue />
         </ProtectedRoute>

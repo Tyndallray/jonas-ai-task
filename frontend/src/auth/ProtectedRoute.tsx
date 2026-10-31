@@ -1,5 +1,6 @@
 import { useEffect, type ReactNode } from 'react'
 import { hasAuthParams, useAuth } from 'react-oidc-context'
+import { ErrorAlert, LoadingState } from '@/components/states'
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const auth = useAuth()
@@ -18,8 +19,8 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
     }
   }, [auth])
 
-  if (auth.error) return <p className="error">Auth error: {auth.error.message}</p>
-  if (!auth.isAuthenticated) return <p>Redirecting to sign in…</p>
+  if (auth.error) return <ErrorAlert>Auth error: {auth.error.message}</ErrorAlert>
+  if (!auth.isAuthenticated) return <LoadingState label="Redirecting to sign in…" />
 
   return children
 }
