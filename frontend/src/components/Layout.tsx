@@ -10,8 +10,14 @@ export function Layout() {
     <>
       <header className="header">
         <nav>
-          <Link to="/">Home</Link>
-          {auth.isAuthenticated && <Link to="/profile">Profile</Link>}
+          <Link to="/">Ads</Link>
+          {auth.isAuthenticated && (
+            <>
+              <Link to="/ads/new">Post an ad</Link>
+              <Link to="/my-ads">My ads</Link>
+              <Link to="/profile">Profile</Link>
+            </>
+          )}
         </nav>
         {auth.isAuthenticated ? (
           <div className="user">
@@ -21,8 +27,9 @@ export function Layout() {
             </button>
           </div>
         ) : (
+          // Cognito's managed login page links to signup (self-signup is enabled on the user pool)
           <button type="button" onClick={() => auth.signinRedirect()}>
-            Sign in
+            Sign in / Sign up
           </button>
         )}
       </header>

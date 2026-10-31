@@ -1,8 +1,13 @@
 import { Route, Routes } from 'react-router-dom'
 import { useAuth } from 'react-oidc-context'
+import { AdminApp } from './admin/AdminApp'
 import { ProtectedRoute } from './auth/ProtectedRoute'
 import { Layout } from './components/Layout'
+import { AdView } from './pages/AdView'
+import { EditAd } from './pages/EditAd'
 import { Home } from './pages/Home'
+import { MyAds } from './pages/MyAds'
+import { NewAd } from './pages/NewAd'
 import { Profile } from './pages/Profile'
 import { NotFound } from './pages/NotFound'
 
@@ -14,8 +19,34 @@ function App() {
 
   return (
     <Routes>
+      <Route path="admin/*" element={<AdminApp />} />
       <Route element={<Layout />}>
         <Route index element={<Home />} />
+        <Route path="ads/:id" element={<AdView />} />
+        <Route
+          path="ads/new"
+          element={
+            <ProtectedRoute>
+              <NewAd />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="my-ads"
+          element={
+            <ProtectedRoute>
+              <MyAds />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="my-ads/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditAd />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="profile"
           element={
