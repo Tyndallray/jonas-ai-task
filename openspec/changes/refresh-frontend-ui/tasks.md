@@ -18,7 +18,7 @@
 
 ## 4. Branded Cognito sign-in
 
-- [ ] 4.1 In `backend/serverless.yml` set `UserPoolTier: ESSENTIALS` on both pools and `ManagedLoginVersion: 2` on both domains; add a `ManagedLoginBranding` per pool/client using `backend/branding/managed-login.json` (exported from the console editor, theme colors) and the logo SVG asset — verify `serverless package` succeeds
+- [x] 4.1 In `backend/serverless.yml` set `UserPoolTier: ESSENTIALS` on both pools and `ManagedLoginVersion: 2` on both domains; add a `ManagedLoginBranding` per pool/client using `backend/branding/managed-login.json` (exported from the console editor, theme colors) and the logo SVG asset — verify `serverless package` succeeds
 - [ ] 4.2 Deploy with `AWS_PROFILE=afferenza` and open both sign-in pages from the app — verify user sign-in/sign-up and admin sign-in show the logo and emerald accent, admin has no signup, and both redirect back to the app after sign-in
 
 ## Workflow follow-up
