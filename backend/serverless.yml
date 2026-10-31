@@ -139,6 +139,11 @@ functions:
           cors: true
           authorizer: *adminAuthorizer
 
+  # Cognito CustomMessage trigger for both pools, wired via LambdaConfig below
+  # (a cognitoUserPool event would make Serverless create its own pool)
+  customMessage:
+    handler: src/auth/customMessage.customMessage
+
 resources:
   Resources:
     AdsTable:
@@ -223,6 +228,16 @@ resources:
           AllowAdminCreateUserOnly: false
         Policies:
           PasswordPolicy: { MinimumLength: 8 }
+        LambdaConfig:
+          CustomMessage: !GetAtt CustomMessageLambdaFunction.Arn
+
+    UserPoolCustomMessagePermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !GetAtt CustomMessageLambdaFunction.Arn
+        Action: lambda:InvokeFunction
+        Principal: cognito-idp.amazonaws.com
+        SourceArn: !GetAtt UserPool.Arn
 
     UserPoolDomain:
       Type: AWS::Cognito::UserPoolDomain
@@ -257,6 +272,16 @@ resources:
           AllowAdminCreateUserOnly: true
         Policies:
           PasswordPolicy: { MinimumLength: 8 }
+        LambdaConfig:
+          CustomMessage: !GetAtt CustomMessageLambdaFunction.Arn
+
+    AdminPoolCustomMessagePermission:
+      Type: AWS::Lambda::Permission
+      Properties:
+        FunctionName: !GetAtt CustomMessageLambdaFunction.Arn
+        Action: lambda:InvokeFunction
+        Principal: cognito-idp.amazonaws.com
+        SourceArn: !GetAtt AdminPool.Arn
 
     AdminPoolDomain:
       Type: AWS::Cognito::UserPoolDomain
