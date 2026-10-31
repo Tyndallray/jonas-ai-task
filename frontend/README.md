@@ -61,3 +61,19 @@ browser are for display only.
 - `npm run build` — type-check and build to `dist/`
 - `npm run lint` — oxlint
 - `npm run preview` — serve the production build
+- `npm test` — run unit tests once (Vitest + Testing Library, jsdom)
+- `npm run test:watch` — run tests in watch mode
+- `npm run test:coverage` — run tests with a v8 coverage report in `coverage/`
+
+## Tests
+
+Tests sit next to the code they cover (`*.test.ts(x)`). `react-oidc-context` is
+mocked with the helpers in `src/test/auth.ts`, so no Cognito pool is needed; the
+Vitest config in `vite.config.ts` pins fake `VITE_COGNITO_*` values so a local
+`.env` never affects results.
+
+## CI/CD
+
+`.github/workflows/frontend-ci.yml` runs lint, unit tests with coverage, and the
+production build on pushes and pull requests to `dev`/`prod` that touch
+`frontend/`. Deployment is done by AWS Amplify, which builds the connected branch.
