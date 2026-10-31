@@ -46,7 +46,7 @@ export const STATUS_LABELS: Record<AdStatus, string> = {
   NEEDS_INFO: 'Needs more info',
 }
 
-const priceFormat = new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' })
+const priceFormat = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' })
 
 export const formatPrice = (price: number) => priceFormat.format(price)
 
