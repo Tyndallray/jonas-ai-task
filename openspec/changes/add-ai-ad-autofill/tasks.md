@@ -12,4 +12,4 @@
 
 ## 3. Deploy and verify
 
-- [ ] 3.1 Deploy the backend and post an ad end-to-end with **Fill with AI**. Verify that the fields are populated, the ad submits with the image, and only one S3 object is created. Note the endpoint in `backend/README.md`.
+- [x] 3.1 Deploy the backend and post an ad end-to-end with **Fill with AI**. Verify that the fields are populated, the ad submits with the image, and only one S3 object is created. Note the endpoint in `backend/README.md`.
