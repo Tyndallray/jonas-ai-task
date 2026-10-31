@@ -3,7 +3,7 @@
 ## Context
 
 **Backend** (`backend/`):
-- Serverless Framework v4, TypeScript, Node 24 on arm64, region `eu-west-2`.
+- Serverless Framework v4, TypeScript, Node 24 on arm64, region `us-east-1` (moved from the scaffold's `eu-west-2` at the user's request).
 - One Lambda per endpoint (`src/todos/*.ts`), sharing a DynamoDB client in `src/lib/dynamodb.ts`.
 - Input checks are hand-written.
 - No authorizers and no Cognito resources yet.
@@ -122,6 +122,6 @@ There is one `Ads` table with partition key `id` (a UUID).
 
 - Remove the Todo functions and table. They hold no real data.
 - Deploy with `serverless deploy` and copy the pool ids, client ids and domains from the stack outputs into `frontend/.env`.
-- Note that `.env.example` placeholders currently point at `us-east-1`. Update them to `eu-west-2`.
+- Point the `.env.example` placeholders at `us-east-1`, the deploy region.
 - Create the first admin with the CLI.
 - Rollback: `serverless remove`, or redeploy the previous commit.

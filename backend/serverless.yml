@@ -11,7 +11,7 @@ provider:
   name: aws
   runtime: nodejs24.x
   architecture: arm64
-  region: eu-west-2
+  region: us-east-1
   environment:
     ADS_TABLE: ${self:service}-ads-${sls:stage}
     IMAGES_BUCKET: !Ref ImagesBucket

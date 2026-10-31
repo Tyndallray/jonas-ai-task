@@ -37,7 +37,7 @@ The Cognito callback/sign-out URLs default to `http://localhost:5173`. For anoth
 Admins cannot sign up. Create one with the AdminPoolId output:
 
 ```bash
-aws cognito-idp admin-create-user --profile afferenza --region eu-west-2 \
+aws cognito-idp admin-create-user --profile afferenza --region us-east-1 \
   --user-pool-id <AdminPoolId> --username admin@example.com \
   --user-attributes Name=email,Value=admin@example.com Name=email_verified,Value=true
 ```
@@ -49,7 +49,7 @@ Cognito emails a temporary password; the admin sets a new one on first sign-in a
 Both app clients allow `ADMIN_USER_PASSWORD_AUTH`, so an operator with IAM credentials can mint an ID token:
 
 ```bash
-aws cognito-idp admin-initiate-auth --profile afferenza --region eu-west-2 \
+aws cognito-idp admin-initiate-auth --profile afferenza --region us-east-1 \
   --user-pool-id <PoolId> --client-id <ClientId> --auth-flow ADMIN_USER_PASSWORD_AUTH \
   --auth-parameters USERNAME=<email>,PASSWORD=<password> \
   --query AuthenticationResult.IdToken --output text
