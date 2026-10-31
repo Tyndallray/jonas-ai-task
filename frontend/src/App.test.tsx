@@ -70,7 +70,7 @@ describe('App', () => {
 
     expect(await screen.findByRole('link', { name: 'Road bike' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'seller@example.com' })).toBeInTheDocument()
-    expect(screen.getByText('£120.50')).toBeInTheDocument()
+    expect(screen.getByText('$120.50')).toBeInTheDocument()
     expect(fetchMock.mock.calls[0][0]).toBe('https://api.test/ads')
   })
 

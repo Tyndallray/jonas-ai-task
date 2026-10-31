@@ -98,7 +98,7 @@ export function AdForm({ initial, submitLabel, onSubmit, aiFill }: Props) {
             />
           </div>
           <div className="grid gap-2">
-            <Label htmlFor={`${id}-price`}>Price (£)</Label>
+            <Label htmlFor={`${id}-price`}>Price ($)</Label>
             <Input
               id={`${id}-price`}
               type="number"
