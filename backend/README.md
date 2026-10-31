@@ -55,6 +55,23 @@ aws cognito-idp admin-initiate-auth --profile afferenza --region us-east-1 \
   --query AuthenticationResult.IdToken --output text
 ```
 
+## Deployment (GitHub Actions)
+
+`.github/workflows/backend.yml` runs whenever `backend/` changes:
+
+| Trigger             | What happens                              |
+| ------------------- | ----------------------------------------- |
+| PR into `dev`/`prod` | `npm ci` + typecheck                      |
+| push to `dev`       | typecheck, then `serverless deploy --stage dev`  |
+| push to `prod`      | typecheck, then `serverless deploy --stage prod` |
+
+The branch name is the stage. Each deploy runs in the GitHub environment of the same name; the `prod` environment only accepts deployments from the `prod` branch.
+
+Repository secrets used by the deploy job:
+
+- `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`: IAM user access keys for the deploy account
+- `SERVERLESS_ACCESS_KEY`: Serverless Framework access key
+
 ## Layout
 
 ```
