@@ -29,7 +29,7 @@ The branch name is the stage. Each deploy runs in the GitHub environment of the 
 Repository secrets used by the deploy job:
 
 - `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`: IAM user `jobhunt` in the afferenza account (851584399180)
-- `SERVERLESS_ACCESS_KEY`: Serverless Framework access key for the `bluesaltmedia` org
+- `SERVERLESS_ACCESS_KEY`: Serverless Framework access key
 
 ## Layout
 
