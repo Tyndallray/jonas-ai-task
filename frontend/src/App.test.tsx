@@ -24,12 +24,18 @@ const signedIn = () =>
     user: fakeUser({}, jwt({ 'cognito:groups': ['admins', 'editors'] })),
   })
 
+const fetchMock = vi.fn<typeof fetch>()
+
 describe('App', () => {
   beforeEach(() => {
     vi.spyOn(window, 'location', 'get').mockReturnValue({
       ...window.location,
       pathname: '/profile',
     } as Location)
+    // The home page loads the public ad feed
+    fetchMock.mockReset()
+    fetchMock.mockResolvedValue(Response.json({ items: [], nextCursor: null }))
+    vi.stubGlobal('fetch', fetchMock)
   })
 
   it('shows a loading state while auth is resolving', () => {
@@ -37,21 +43,50 @@ describe('App', () => {
     expect(screen.getByText('Loading…')).toBeInTheDocument()
   })
 
-  it('invites anonymous users to sign in', async () => {
-    const auth = renderAt('/')
+  it('shows approved ads with the poster email to anonymous visitors', async () => {
+    fetchMock.mockResolvedValue(
+      Response.json({
+        items: [
+          {
+            id: 'ad-1',
+            title: 'Road bike',
+            description: 'Red',
+            price: 120.5,
+            imageUrl: null,
+            ownerEmail: 'seller@example.com',
+            approvedAt: 1_800_000_000_000,
+          },
+        ],
+        nextCursor: null,
+      }),
+    )
+    renderAt('/')
 
-    expect(screen.getByText('Sign in with your Cognito account to continue.')).toBeInTheDocument()
-    expect(screen.queryByRole('link', { name: 'Profile' })).not.toBeInTheDocument()
-
-    await userEvent.click(screen.getByRole('button', { name: 'Sign in' }))
-    expect(auth.signinRedirect).toHaveBeenCalled()
+    expect(await screen.findByRole('link', { name: 'Road bike' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'seller@example.com' })).toBeInTheDocument()
+    expect(screen.getByText('£120.50')).toBeInTheDocument()
+    expect(fetchMock.mock.calls[0][0]).toBe('https://api.test/ads')
   })
 
-  it('greets a signed-in user and links to their profile', () => {
+  it('invites anonymous users to sign in or sign up', async () => {
+    const auth = renderAt('/')
+
+    expect(screen.queryByRole('link', { name: 'Profile' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'My ads' })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Sign in / Sign up' }))
+    expect(auth.signinRedirect).toHaveBeenCalled()
+    expect(await screen.findByText('No ads yet.')).toBeInTheDocument()
+  })
+
+  it('gives a signed-in user links to post and manage ads', async () => {
     renderAt('/', signedIn())
 
-    expect(screen.getByText('You are signed in as jane@example.com.')).toBeInTheDocument()
+    expect(screen.getByText('jane@example.com')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Post an ad' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'My ads' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Profile' })).toBeInTheDocument()
+    expect(await screen.findByText('No ads yet.')).toBeInTheDocument()
   })
 
   it('signs out locally and then through Cognito', async () => {

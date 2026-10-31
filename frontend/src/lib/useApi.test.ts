@@ -8,7 +8,9 @@ vi.mock('react-oidc-context', () => ({ useAuth: vi.fn() }))
 
 const fetchMock = vi.fn<typeof fetch>()
 
-function api(auth = fakeAuth({ isAuthenticated: true, user: fakeUser({}, 'token-abc') })) {
+function api(
+  auth = fakeAuth({ isAuthenticated: true, user: fakeUser({}, 'access-abc', 'id-abc') }),
+) {
   vi.mocked(useAuth).mockReturnValue(auth)
   return { auth, call: renderHook(() => useApi()).result.current }
 }
@@ -19,7 +21,8 @@ describe('useApi', () => {
     vi.stubGlobal('fetch', fetchMock)
   })
 
-  it('prefixes the base url and attaches the access token', async () => {
+  // The API Gateway Cognito authorizers validate ID tokens (which carry the email claim)
+  it('prefixes the base url and attaches the ID token', async () => {
     fetchMock.mockResolvedValue(Response.json({ id: 1 }))
     const { call } = api()
 
@@ -27,7 +30,16 @@ describe('useApi', () => {
 
     const [url, init] = fetchMock.mock.calls[0]
     expect(url).toBe('https://api.test/items')
-    expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer token-abc')
+    expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer id-abc')
+  })
+
+  it('reports a misconfigured base url when the response is not JSON', async () => {
+    fetchMock.mockResolvedValue(
+      new Response('<!doctype html>', { headers: { 'Content-Type': 'text/html' } }),
+    )
+    const { call } = api()
+
+    await expect(call('/ads')).rejects.toThrow('check VITE_API_BASE_URL')
   })
 
   it('omits the Authorization header when signed out', async () => {
