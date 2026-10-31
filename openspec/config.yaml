@@ -6,6 +6,7 @@ context: |
   Testing is minimal: cover only critical/happy paths, no exhaustive edge-case suites.
   Git: all commits follow Conventional Commits (type(scope): subject, e.g. feat:, fix:, chore:, docs:, refactor:, test:).
   Git: only two long-lived branches, dev and prod. Work lands on dev; prod is updated only by merging dev.
+  AWS: use the AWS CLI/SDK profile "afferenza" for all AWS work in this project (e.g. --profile afferenza or AWS_PROFILE=afferenza).
 
 rules:
   proposal:

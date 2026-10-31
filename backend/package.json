@@ -1,0 +1,27 @@
+{
+  "name": "backend",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "watch": "tsc --noEmit -w",
+    "test": "vitest run",
+    "deploy": "serverless deploy --aws-profile afferenza",
+    "remove": "serverless remove --aws-profile afferenza",
+    "info": "serverless info --aws-profile afferenza"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.162",
+    "@types/node": "^24.13.0",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.5"
+  },
+  "dependencies": {
+    "@aws-sdk/client-bedrock-runtime": "^3.1161.0",
+    "@aws-sdk/client-dynamodb": "^3.700.0",
+    "@aws-sdk/client-s3": "^3.1161.0",
+    "@aws-sdk/lib-dynamodb": "^3.700.0",
+    "@aws-sdk/s3-presigned-post": "^3.1161.0"
+  }
+}
