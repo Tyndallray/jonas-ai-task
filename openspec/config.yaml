@@ -1,0 +1,63 @@
+schema: spec-driven
+
+context: |
+  Optimize for speed of delivery over exhaustiveness.
+  Keep artifacts short and pragmatic; skip ceremony that doesn't change the outcome.
+  Testing is minimal: cover only critical/happy paths, no exhaustive edge-case suites.
+  Git: all commits follow Conventional Commits (type(scope): subject, e.g. feat:, fix:, chore:, docs:, refactor:, test:).
+  Git: only two long-lived branches, dev and prod. Work lands on dev; prod is updated only by merging dev.
+
+rules:
+  proposal:
+    - Keep proposals brief (under 300 words)
+    - State what is out of scope in one or two bullets
+  design:
+    - Only write a design when the change is non-trivial; keep it to key decisions
+  specs:
+    - Limit scenarios to the essential behaviors; avoid enumerating every edge case
+  tasks:
+    - Keep the task list short and coarse-grained
+    - Include at most one or two test tasks covering the critical path
+    - Do not add separate tasks for exhaustive unit, integration, or e2e test suites
+
+operations:
+  apply:
+    guidance:
+      - Move fast; implement the simplest working solution
+      - Write only a few focused tests for the main happy path; skip edge-case and exhaustive coverage
+      - Don't refactor unrelated code or add extra polish
+      - Keep test summaries concise
+  archive:
+    guidance:
+      - Keep the archive summary to a few lines
+
+# Project context (optional)
+# Add only constraints that should guide OpenSpec artifacts and workflows.
+# Include constraints an agent cannot infer by reading the code.
+# Keep general project documentation and discoverable codebase facts out.
+# Example:
+#   context: |
+#     Designs and tasks must cover Windows, macOS, and Linux
+#     Write all artifacts in Spanish
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always state what is out of scope
+#     tasks:
+#       - Break tasks into chunks of max 2 hours
+
+# Per-operation guidance (optional)
+# Add advisory guidance for how apply and archive work should be conducted.
+# This is separate from artifact rules above.
+# Example:
+#   operations:
+#     apply:
+#       guidance:
+#         - Keep test summaries concise
+#     archive:
+#       guidance:
+#         - Summarize the archive outcome before finishing
