@@ -73,3 +73,8 @@ Vitest config in `vite.config.ts` pins fake `VITE_COGNITO_*` values so a local
 `.github/workflows/frontend-ci.yml` runs lint, unit tests with coverage, and the
 production build on pushes and pull requests to `dev`/`prod` that touch
 `frontend/`. Deployment is done by AWS Amplify, which builds the connected branch.
+
+The Amplify apps are defined in the backend stack (`../backend/serverless.yml`, see "Frontend hosting"
+in `../backend/README.md`): the `dev` and `prod` branches each deploy to their own app, with the
+`VITE_*` variables set from that stage's API and Cognito pools, so no `.env` file is needed there. The
+hosted URL is the `FrontendUrl` stack output.
